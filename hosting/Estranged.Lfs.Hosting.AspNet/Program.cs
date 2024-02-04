@@ -11,7 +11,7 @@ namespace Estranged.Lfs.Hosting.AspNet
                 .UseKestrel()
                 .UseStartup<Startup>()
                 .Build();
-
+            
             host.Run();
         }
     }

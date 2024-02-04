@@ -1,6 +1,6 @@
 {
-  "profile": "ae-lambda-publish",
-  "region": "eu-west-1",
+  "profile": "tacoworks-aws",
+  "region": "ap-northeast-1",
   "configuration": "Release",
   "framework": "net6.0",
   "s3-prefix": "Estranged.Lfs.Hosting.Lambda/",

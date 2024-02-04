@@ -11,6 +11,7 @@ namespace Estranged.Lfs.Api
                     .AddGitLfs();
 
             services.AddLfsData();
+            services.AddLfsLock();
             return services;
         }
     }

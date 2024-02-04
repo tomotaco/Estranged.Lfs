@@ -3,9 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Estranged.Lfs.Adaptar.DynamoDB\Estranged.Lfs.Adapter.DynamoDB.csproj" />
     <ProjectReference Include="..\..\src\Estranged.Lfs.Adapter.S3\Estranged.Lfs.Adapter.S3.csproj" />
     <ProjectReference Include="..\..\src\Estranged.Lfs.Api\Estranged.Lfs.Api.csproj" />
   </ItemGroup>

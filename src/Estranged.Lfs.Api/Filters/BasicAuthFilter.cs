@@ -26,8 +26,10 @@ namespace Estranged.Lfs.Api.Filters
         public string BasicPrefix => "Basic";
 
         private void Unauthorised(ActionExecutingContext context)
-        {
+        {            
             context.Result = new StatusCodeResult(401);
+            context.HttpContext.Response.Headers.WWWAuthenticate = "Basic realm=\"hoge\"";
+            
         }
 
         private (string Username, string Password) GetCredentials(IHeaderDictionary headers)
