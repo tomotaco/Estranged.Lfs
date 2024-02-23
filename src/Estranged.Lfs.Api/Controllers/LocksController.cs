@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Estranged.Lfs.Api.Controllers
@@ -28,30 +29,27 @@ namespace Estranged.Lfs.Api.Controllers
         [Consumes(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<LockResponse>> LockAsync([FromBody] LockRequest request, [FromHeader(Name = "USER")] string user)
+        public async Task<ActionResult<LockResponse>> LockAsync([FromBody] LockRequest request, [FromHeader(Name = "USER")] string user, CancellationToken token)
         {
-            var lockFound = await this.lockManager.FilterdLocks(request.Path, request.Ref.Name, "", 1);
-            if (lockFound != null && lockFound.Item1.Count<Lock>() > 0)
+            var (found, l) = await this.lockManager.CreateLock(request.Path, user, request.Ref.Name, token);
+            if (found)
             {
-                return Conflict(lockFound);
+                return Conflict(l);
             }
-
-            var l = await this.lockManager.CreateLock(request.Path, user, request.Ref.Name);
             var response = new LockResponse() {
                 Lock = l,
                 Message = "Successfully locked."
             };
             return Created("", response);
-//            return new ActionResult<LockResponse>(response);
         }
 
         [HttpPost("{id}/unlock")]
         [Consumes(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<UnlockResponse>> UnlockAsync([FromRoute] string id, [FromBody] UnlockRequest request, [FromHeader(Name = "USER")] string user)
+        public async Task<ActionResult<UnlockResponse>> UnlockAsync([FromRoute] string id, [FromBody] UnlockRequest request, [FromHeader(Name = "USER")] string user, CancellationToken token)
         {
-            var lockDeleted = await this.lockManager.DeleteLock(id, user, request.Ref.Name, request.Force);
+            var lockDeleted = await this.lockManager.DeleteLock(id, user, request.Ref.Name, request.Force, token);
             if (lockDeleted == null)
             {
                 return NotFound();
@@ -63,13 +61,13 @@ namespace Estranged.Lfs.Api.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<LockList>> LocksAsync([FromQuery] string path, [FromQuery] string refSpec, [FromQuery] string cursor, [FromQuery] int limit)
+        public async Task<ActionResult<LockList>> LocksAsync([FromQuery] string path, [FromQuery] string refSpec, [FromQuery]string id, [FromQuery] string cursor, [FromQuery] int limit, CancellationToken token)
         {
-            var tupleLocksFound = await this.lockManager.FilterdLocks(path, refSpec, cursor, limit);
+            var (locks, paginationToken) = await this.lockManager.Locks(path, refSpec, id, cursor, limit, token);
             var locksResponse = new LockList()
             {
-                Locks = tupleLocksFound.Item1,
-                NextCursor = tupleLocksFound.Item2
+                Locks = locks,
+                NextCursor = paginationToken
 
             };
             return Ok(locksResponse);
@@ -77,12 +75,12 @@ namespace Estranged.Lfs.Api.Controllers
 
         [HttpPost("verify")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<VerifiableLockList>> VerifyLocksAsync([FromBody] VerifiableLockRequest request, [FromHeader] string user)
+        public async Task<ActionResult<VerifiableLockList>> VerifyLocksAsync([FromBody] VerifiableLockRequest request, [FromHeader] string user, CancellationToken token)
         {
-            var tupleLocksFound = await this.lockManager.FilterdLocks("", request.Ref.Name, request.Cursor, request.Limit);
+            var (locks, paginationToken) = await this.lockManager.VerifiedLocks(request.Ref.Name, request.Cursor, request.Limit, token);
             var locksOurs = new List<Lock>();
             var locksTheirs = new List<Lock>();
-            foreach (var l in tupleLocksFound.Item1)
+            foreach (var l in locks)
             {
                 if (l.Owner.Name.Equals(user))
                 {
@@ -96,7 +94,7 @@ namespace Estranged.Lfs.Api.Controllers
             {
                 Ours = locksOurs,
                 Theirs = locksTheirs,
-                NextCursor = tupleLocksFound.Item2
+                NextCursor = paginationToken
 
             };
             return Ok(locksResponse);

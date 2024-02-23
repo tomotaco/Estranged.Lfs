@@ -1,6 +1,7 @@
 ﻿using Estranged.Lfs.Data.Entities;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -17,22 +18,26 @@ namespace Estranged.Lfs.Data
             this.lockAdapter = lockAdapter;
         }
 
-        public async Task<Lock> CreateLock(string path, string owner, string refSpec)
+        public async Task<(bool, Lock)> CreateLock(string path, string owner, string refSpec, CancellationToken token)
         {
-            var l = await this.lockAdapter.CreateLock(path, owner, refSpec);
+            var (found, l) = await this.lockAdapter.CreateLock(path, owner, refSpec, token);
+            return (found, l);
+        }
+
+        public async Task<Lock> DeleteLock(string id, string user, string refSpec, bool force, CancellationToken token)
+        {
+            var l = await this.lockAdapter.DeleteLock(id, user, refSpec, force, token);
             return l;
         }
 
-        public async Task<Lock> DeleteLock(string id, string user, string refSpec, bool force)
+        public async Task<(IEnumerable<Lock>, string)> Locks(string path, string refSpec, string id, string cursor, int limits, CancellationToken token)
         {
-            var l = await this.lockAdapter.DeleteLock(id, user, refSpec, force);
-            return l;
+            return await this.lockAdapter.Locks(path, refSpec, id, cursor, limits, token);
         }
 
-        public async Task<Tuple<IEnumerable<Lock>, string>> FilterdLocks(string path, string refSpec, string cursor, int limit)
+        public async Task<(IEnumerable<Lock>, string)> VerifiedLocks(string refSpec, string cursor, int limits, CancellationToken token)
         {
-            var locks = await this.lockAdapter.FilterdLocks(path, refSpec, cursor, limit);
-            return locks;
+            return await this.lockAdapter.VerifiedLocks(refSpec, cursor, limits, token);
         }
     }
 }
